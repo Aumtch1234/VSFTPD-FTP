@@ -2,24 +2,14 @@ version: '3.8'
 
 services:
   vsftpd:
-    image: fauria/vsftpd
+    build: .
     container_name: vsftpd
     restart: always
     ports:
-      - "21:21"                   # FTP Control Port
-      - "21100-21110:21100-21110" # Passive Mode Ports
-    environment:
-      FTP_USER: ftpuser
-      FTP_PASS: ftpuser
-      PASV_ADDRESS: 10.1.194.44   # ใส่ IP ของเครื่องที่รัน Docker
-      PASV_MIN_PORT: 21100
-      PASV_MAX_PORT: 21110
-      LOCAL_UMASK: 022
-      LOG_STDOUT: "true"
-
+      - "21:21"
+      - "21100-21110:21100-21110"
     volumes:
-      - ./ftp-data:/home/vsftpd   # ไฟล์ของ FTP
-      - ./logs:/var/log/vsftpd    # ต้องเป็น directory ไม่ใช่ไฟล์
-
-volumes:
-  ftp-data:
+      - ./anon-data:/home/vsftpd/anon/upload
+      - ./user-data:/home/ftpuser/upload
+    environment:
+      - PASV_ADDRESS=10.1.194.44
