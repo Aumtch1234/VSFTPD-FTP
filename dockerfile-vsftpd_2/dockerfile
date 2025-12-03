@@ -1,0 +1,54 @@
+FROM ubuntu:22.04
+
+RUN apt update && apt install -y vsftpd && apt install -y iputils-ping && apt install -y iproute2
+
+# แก้ไขค่าที่มีอยู่แล้ว
+RUN sed -i 's/anonymous_enable=NO/anonymous_enable=YES/' /etc/vsftpd.conf && \
+    sed -i 's/#write_enable=YES/write_enable=YES/' /etc/vsftpd.conf && \
+    sed -i 's/#anon_upload_enable=YES/anon_upload_enable=YES/' /etc/vsftpd.conf && \
+    sed -i 's/#anon_mkdir_write_enable=YES/anon_mkdir_write_enable=YES/' /etc/vsftpd.conf
+
+# เพิ่มค่าใหม่
+RUN echo "anon_root=/home/vsftpd/anon" >> /etc/vsftpd.conf && \
+    echo "no_anon_password=YES" >> /etc/vsftpd.conf && \
+    echo "pasv_enable=YES" >> /etc/vsftpd.conf && \
+    echo "pasv_min_port=22100" >> /etc/vsftpd.conf && \
+    echo "pasv_max_port=22110" >> /etc/vsftpd.conf && \
+    echo "allow_writeable_chroot=YES" >> /etc/vsftpd.conf && \
+    echo "local_enable=YES" >> /etc/vsftpd.conf && \
+    echo "chroot_local_user=YES" >> /etc/vsftpd.conf
+
+# สร้าง user สำหรับ login
+RUN useradd -m -d /home/ftpuser ftpuser && \
+    echo "ftpuser:ftpuser" | chpasswd
+
+# สร้าง directories ที่จำเป็น
+RUN mkdir -p /var/run/vsftpd/empty && \
+    mkdir -p /home/vsftpd/anon && \
+    mkdir -p /home/ftpuser/upload && \
+    mkdir -p /home/vsftpd/anon/upload
+
+# สร้าง entrypoint script
+RUN echo '#!/bin/bash\n\
+\n\
+# Set PASV address if provided\n\
+if [ ! -z "$PASV_ADDRESS" ]; then\n\
+  echo "pasv_address=$PASV_ADDRESS" >> /etc/vsftpd.conf\n\
+fi\n\
+\n\
+# Set permissions\n\
+chmod 755 /var/run/vsftpd/empty\n\
+chmod 755 /home/vsftpd\n\
+chmod 755 /home/vsftpd/anon\n\
+chmod 777 /home/vsftpd/anon/upload\n\
+chmod 755 /home/ftpuser\n\
+chown ftpuser:ftpuser /home/ftpuser\n\
+chmod 777 /home/ftpuser/upload\n\
+chown ftpuser:ftpuser /home/ftpuser/upload\n\
+\n\
+# Start vsftpd in foreground\n\
+exec vsftpd /etc/vsftpd.conf' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+EXPOSE 2121 22100-22110
+ENTRYPOINT ["/entrypoint.sh"]

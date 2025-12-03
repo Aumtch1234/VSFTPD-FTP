@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-RUN apt update && apt install -y vsftpd
+RUN apt update && apt install -y vsftpd && apt install -y iputils-ping && apt install -y iproute2
 
 # แก้ไขค่าที่มีอยู่แล้ว
 RUN sed -i 's/anonymous_enable=NO/anonymous_enable=YES/' /etc/vsftpd.conf && \
@@ -50,5 +50,5 @@ chown ftpuser:ftpuser /home/ftpuser/upload\n\
 exec vsftpd /etc/vsftpd.conf' > /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
-EXPOSE 21 20 21100-21110
+EXPOSE 21 21100-21110
 ENTRYPOINT ["/entrypoint.sh"]
